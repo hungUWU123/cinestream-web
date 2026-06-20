@@ -1,0 +1,347 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum MovieType {
+  MOVIE      // Phim lẻ
+  SERIES     // Phim bộ
+}
+
+enum MovieStatus {
+  ONGOING    // Đang chiếu
+  COMPLETED  // Hoàn thành
+  UPCOMING   // Sắp chiếu
+}
+
+enum ReportType {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE
+  OTHER
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String?  @map("display_name")
+  avatar       String?
+  bio          String?
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true) @map("is_active")
+  isVerified   Boolean  @default(false) @map("is_verified")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  refreshTokens  RefreshToken[]
+  comments       Comment[]
+  commentLikes   CommentLike[]
+  favorites      Favorite[]
+  watchHistories WatchHistory[]
+  notifications  Notification[]
+  reports        Report[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// MOVIE CATALOG (Synced from OPhim API)
+// ============================================================
+
+model Movie {
+  id             String      @id @default(cuid())
+  ophimId        String      @unique @map("ophim_id")  // OPhim _id
+  name           String
+  slug           String      @unique
+  originName     String      @map("origin_name")
+  content        String?     @db.Text
+  type           MovieType   @default(MOVIE)
+  status         MovieStatus @default(ONGOING)
+  thumbUrl       String      @map("thumb_url")
+  posterUrl      String      @map("poster_url")
+  trailerUrl     String?     @map("trailer_url")
+  year           Int
+  quality        String?     // HD, FHD, CAM
+  lang           String?     // Vietsub, Thuyết minh
+  time           String?     // "45 phút/tập"
+  episodeCurrent String?     @map("episode_current")
+  episodeTotal   String?     @map("episode_total")
+  isCopyright    Boolean     @default(false) @map("is_copyright")
+  isPublished    Boolean     @default(true) @map("is_published")
+  isFeatured     Boolean     @default(false) @map("is_featured")
+  viewCount      Int         @default(0) @map("view_count")
+  tmdbId         String?     @map("tmdb_id")
+  tmdbRating     Float?      @map("tmdb_rating")
+  imdbId         String?     @map("imdb_id")
+  imdbRating     Float?      @map("imdb_rating")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  episodes    Episode[]
+  genres      MovieGenre[]
+  countries   MovieCountry[]
+  actors      MovieActor[]
+  directors   MovieDirector[]
+  comments    Comment[]
+  favorites   Favorite[]
+  watchHistories WatchHistory[]
+
+  @@index([slug])
+  @@index([year])
+  @@index([viewCount])
+  @@index([isFeatured])
+  @@map("movies")
+}
+
+model Episode {
+  id           String   @id @default(cuid())
+  movieId      String   @map("movie_id")
+  serverName   String   @map("server_name")  // "Vietsub #1"
+  name         String   // "1", "2", ...
+  slug         String
+  filename     String?
+  linkEmbed    String?  @map("link_embed")
+  linkM3u8     String?  @map("link_m3u8")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  movie          Movie          @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  watchHistories WatchHistory[]
+
+  @@unique([movieId, serverName, slug])
+  @@index([movieId])
+  @@map("episodes")
+}
+
+// ============================================================
+// TAXONOMIES
+// ============================================================
+
+model Genre {
+  id        String       @id @default(cuid())
+  ophimId   String       @unique @map("ophim_id")
+  name      String
+  slug      String       @unique
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  movies MovieGenre[]
+
+  @@map("genres")
+}
+
+model MovieGenre {
+  movieId String @map("movie_id")
+  genreId String @map("genre_id")
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+  @@map("movie_genres")
+}
+
+model Country {
+  id        String         @id @default(cuid())
+  ophimId   String         @unique @map("ophim_id")
+  name      String
+  slug      String         @unique
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  movies MovieCountry[]
+
+  @@map("countries")
+}
+
+model MovieCountry {
+  movieId   String @map("movie_id")
+  countryId String @map("country_id")
+
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, countryId])
+  @@map("movie_countries")
+}
+
+model Actor {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  avatar    String?
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  movies MovieActor[]
+
+  @@map("actors")
+}
+
+model MovieActor {
+  movieId String @map("movie_id")
+  actorId String @map("actor_id")
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  actor Actor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, actorId])
+  @@map("movie_actors")
+}
+
+model Director {
+  id        String          @id @default(cuid())
+  name      String
+  slug      String          @unique
+  avatar    String?
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  movies MovieDirector[]
+
+  @@map("directors")
+}
+
+model MovieDirector {
+  movieId    String @map("movie_id")
+  directorId String @map("director_id")
+
+  movie    Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  director Director @relation(fields: [directorId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, directorId])
+  @@map("movie_directors")
+}
+
+// ============================================================
+// SOCIAL FEATURES
+// ============================================================
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String    @db.Text
+  movieId   String    @map("movie_id")
+  userId    String    @map("user_id")
+  parentId  String?   @map("parent_id")
+  isHidden  Boolean   @default(false) @map("is_hidden")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  movie    Movie         @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[]     @relation("CommentReplies")
+  likes    CommentLike[]
+  reports  Report[]
+
+  @@index([movieId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model CommentLike {
+  userId    String   @map("user_id")
+  commentId String   @map("comment_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@map("comment_likes")
+}
+
+model Favorite {
+  userId    String   @map("user_id")
+  movieId   String   @map("movie_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@id([userId, movieId])
+  @@map("favorites")
+}
+
+model WatchHistory {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  movieId     String   @map("movie_id")
+  episodeId   String?  @map("episode_id")
+  progress    Int      @default(0) // seconds watched
+  duration    Int      @default(0) // total duration
+  watchedAt   DateTime @default(now()) @map("watched_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie   Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, movieId, episodeId])
+  @@index([userId])
+  @@map("watch_history")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model Report {
+  id        String     @id @default(cuid())
+  userId    String     @map("user_id")
+  commentId String?    @map("comment_id")
+  type      ReportType @default(OTHER)
+  reason    String?
+  isHandled Boolean    @default(false) @map("is_handled")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+
+  @@map("reports")
+}

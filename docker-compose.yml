@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: cinestream_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cinestream_db
+      POSTGRES_USER: cinestream_user
+      POSTGRES_PASSWORD: cinestream_pass_2024
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cinestream_user -d cinestream_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cinestream_redis
+    restart: unless-stopped
+    command: redis-server --requirepass cinestream_redis_pass
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', 'cinestream_redis_pass', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cinestream_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://cinestream_user:cinestream_pass_2024@postgres:5432/cinestream_db
+      REDIS_URL: redis://:cinestream_redis_pass@redis:6379
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production
+      JWT_REFRESH_SECRET: your_super_secret_refresh_key_change_in_production
+      OPHIM_BASE_URL: https://ophim1.com
+      OPHIM_IMAGE_CDN: https://img.ophim.live/uploads/movies
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - '5000:5000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cinestream_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:5000/api
+      NEXT_PUBLIC_OPHIM_IMAGE_CDN: https://img.ophim.live/uploads/movies
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: cinestream_network
