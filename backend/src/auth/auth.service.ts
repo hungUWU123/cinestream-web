@@ -14,6 +14,17 @@ import { MailService } from '../mail/mail.service';
 @Injectable()
 export class AuthService {
   private otpCache = new Map<string, { code: string; expiresAt: number }>();
+  private tvSessionsCache = new Map<
+    string,
+    {
+      code: string;
+      userId: string | null;
+      isApproved: boolean;
+      expiresAt: number;
+      tokens: any | null;
+      user: any | null;
+    }
+  >();
 
   constructor(
     private prisma: PrismaService,
@@ -21,6 +32,87 @@ export class AuthService {
     private config: ConfigService,
     private mailService: MailService,
   ) {}
+
+  createTvSession() {
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    this.tvSessionsCache.set(token, {
+      code,
+      userId: null,
+      isApproved: false,
+      expiresAt,
+      tokens: null,
+      user: null,
+    });
+
+    return { token, code, expiresAt };
+  }
+
+  getTvSessionStatus(token: string) {
+    const session = this.tvSessionsCache.get(token);
+    if (!session) {
+      return { expired: true };
+    }
+
+    if (session.expiresAt < Date.now()) {
+      this.tvSessionsCache.delete(token);
+      return { expired: true };
+    }
+
+    if (session.isApproved) {
+      const result = {
+        isApproved: true,
+        user: session.user,
+        ...session.tokens,
+      };
+      this.tvSessionsCache.delete(token);
+      return result;
+    }
+
+    return { isApproved: false };
+  }
+
+  async approveTvSession(token: string, userId: string) {
+    const session = this.tvSessionsCache.get(token);
+    if (!session) {
+      throw new BadRequestException('Mã xác minh TV không tồn tại hoặc đã hết hạn.');
+    }
+
+    if (session.expiresAt < Date.now()) {
+      this.tvSessionsCache.delete(token);
+      throw new BadRequestException('Mã xác minh TV đã hết hạn.');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Người dùng không hợp lệ.');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Tài khoản đã bị khóa.');
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+    session.isApproved = true;
+    session.userId = user.id;
+    session.tokens = tokens;
+    session.user = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      displayName: user.displayName,
+      role: user.role,
+      avatar: user.avatar,
+    };
+
+    return { success: true };
+  }
 
   async register(dto: RegisterDto) {
     const email = dto.email.toLowerCase().trim();

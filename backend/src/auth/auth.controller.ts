@@ -4,10 +4,15 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Get,
+  Param,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto, SendOtpDto, VerifyOtpDto } from './dto/auth.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -50,5 +55,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@Body() dto: RefreshTokenDto) {
     return this.authService.logout(dto.refreshToken);
+  }
+
+  @Post('tv/session')
+  @HttpCode(HttpStatus.OK)
+  createTvSession() {
+    return this.authService.createTvSession();
+  }
+
+  @Get('tv/session/:token/status')
+  getTvSessionStatus(@Param('token') token: string) {
+    return this.authService.getTvSessionStatus(token);
+  }
+
+  @Post('tv/session/approve')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  approveTvSession(
+    @Body('token') token: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.authService.approveTvSession(token, userId);
   }
 }

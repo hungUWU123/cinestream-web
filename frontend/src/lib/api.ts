@@ -1,9 +1,15 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export function getApiUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  if (typeof window !== 'undefined' && envUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+    return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+  }
+  return envUrl;
+}
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: getApiUrl(),
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -31,7 +37,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
 
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+        const { data } = await axios.post(`${getApiUrl()}/auth/refresh`, { refreshToken });
         localStorage.setItem('access_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
 
@@ -68,6 +74,12 @@ export const authAPI = {
     api.post('/auth/refresh', { refreshToken }).then(r => r.data),
   logout: (refreshToken: string) =>
     api.post('/auth/logout', { refreshToken }).then(r => r.data),
+  createTvSession: () =>
+    api.post('/auth/tv/session').then(r => r.data),
+  getTvSessionStatus: (token: string) =>
+    api.get(`/auth/tv/session/${token}/status`).then(r => r.data),
+  approveTvSession: (token: string) =>
+    api.post('/auth/tv/session/approve', { token }).then(r => r.data),
 };
 
 // Movies

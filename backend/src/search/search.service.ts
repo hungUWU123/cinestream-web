@@ -9,6 +9,17 @@ export class SearchService {
     private ophim: OphimService,
   ) {}
 
+  private slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  }
+
   async search(query: {
     q?: string;
     genre?: string;
@@ -26,9 +37,11 @@ export class SearchService {
     const where: any = { isPublished: true };
 
     if (query.q) {
+      const slugQuery = this.slugify(query.q);
       where.OR = [
         { name: { contains: query.q } },
         { originName: { contains: query.q } },
+        { slug: { contains: slugQuery } },
         { actors: { some: { actor: { name: { contains: query.q } } } } },
       ];
     }
@@ -85,6 +98,7 @@ export class SearchService {
 
   async getSuggestions(q: string, limit = 5) {
     if (!q || q.length < 2) return [];
+    const slugQuery = this.slugify(q);
 
     return this.prisma.movie.findMany({
       where: {
@@ -92,6 +106,7 @@ export class SearchService {
         OR: [
           { name: { contains: q } },
           { originName: { contains: q } },
+          { slug: { contains: slugQuery } },
         ],
       },
       take: limit,

@@ -2,15 +2,26 @@
 
 import { useState, useEffect, useRef, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { moviesAPI } from '@/lib/api';
+import { moviesAPI, searchAPI, favoritesAPI, authAPI } from '@/lib/api';
 import { useTvNavigation } from '@/hooks/useTvNavigation';
+import { useAuthStore } from '@/store/auth.store';
 import TvHlsPlayer from '@/components/player/TvHlsPlayer';
-import { Film, TrendingUp, Sparkles, Tv, Clapperboard, Calendar, Search, Home, Heart, Play, Info, X } from 'lucide-react';
+import { Film, TrendingUp, Sparkles, Tv, Clapperboard, Calendar, Search, Home, Heart, Play, Info, X, LogIn, LogOut, Loader2, RefreshCw, XCircle } from 'lucide-react';
 import type { Movie } from '@/types';
 import toast from 'react-hot-toast';
 
+const KEYBOARD_ROWS = [
+  ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
+  ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'],
+  ['U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3'],
+  ['4', '5', '6', '7', '8', '9', 'SPACE', 'BACKSPACE', 'CLEAR']
+];
+
 export default function TvPage() {
-  // 1. Fetch movie rows (similar to home page)
+  const { isAuthenticated, logout } = useAuthStore();
+  const [sidebarIdx, setSidebarIdx] = useState(1);
+
+  // 1. Fetch default movie rows for Home View
   const { data: featuredMovies = [], isLoading: isFeaturedLoading } = useQuery<Movie[]>({
     queryKey: ['movies', 'featured'],
     queryFn: () => moviesAPI.getFeatured(12),
@@ -39,24 +50,64 @@ export default function TvPage() {
   });
   const upcomingMovies = upcomingMoviesResponse?.data || [];
 
-  // Group all categories for easy indexing with explicit type
-  const rows: { title: string; icon: ReactNode; movies: Movie[]; loading: boolean }[] = [
-    { title: 'Phim Nổi Bật', icon: <Sparkles className="w-5 h-5 text-yellow-500" />, movies: featuredMovies, loading: isFeaturedLoading },
-    { title: 'Phim Thịnh Hành', icon: <TrendingUp className="w-5 h-5 text-red-500" />, movies: trendingMovies, loading: isTrendingLoading },
-    { title: 'Phim Lẻ Mới', icon: <Film className="w-5 h-5 text-blue-500" />, movies: singleMovies, loading: isSingleLoading },
-    { title: 'Phim Bộ Mới', icon: <Tv className="w-5 h-5 text-green-500" />, movies: seriesMovies, loading: isSeriesLoading },
-    { title: 'Phim Sắp Ra Mắt', icon: <Calendar className="w-5 h-5 text-yellow-500 animate-pulse" />, movies: upcomingMovies, loading: isUpcomingLoading },
-  ].filter(row => row.loading || row.movies.length > 0);
+  // 2. TV Search States & Query
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: searchResponse, isLoading: isSearching } = useQuery<any>({
+    queryKey: ['tv-search', searchQuery],
+    queryFn: () => searchAPI.search({ q: searchQuery, limit: 18 }),
+    enabled: searchQuery.trim().length > 0,
+  });
+  const searchResults = searchResponse?.data || [];
 
-  const heroMovie = featuredMovies[0] || trendingMovies[0] || singleMovies[0] || null;
+  // 3. TV Favorites Query
+  const { data: favoritesResponse, isLoading: isFavoritesLoading } = useQuery<any>({
+    queryKey: ['tv-favorites'],
+    queryFn: () => favoritesAPI.getAll(1),
+    enabled: isAuthenticated,
+  });
+  const favoriteMovies = favoritesResponse?.data?.map((f: any) => f.movie).filter(Boolean) || [];
 
-  // 2. Spatial Navigation Hook Setup
+  // 4. Dynamic category rows mapping based on Sidebar Menu active state
+  const getTvRows = (currentSidebarIdx: number): { title: string; icon: ReactNode; movies: Movie[]; loading: boolean }[] => {
+    // SEARCH View
+    if (currentSidebarIdx === 0) {
+      return [
+        {
+          title: searchQuery.trim() ? `Kết quả tìm kiếm cho: "${searchQuery}"` : 'Nhập từ khóa tìm kiếm để xem danh sách',
+          icon: <Search className="w-5 h-5 text-red-500" />,
+          movies: (searchResults || []).filter(Boolean),
+          loading: isSearching,
+        },
+      ];
+    }
+    // FAVORITES View
+    if (currentSidebarIdx === 2) {
+      return [
+        {
+          title: 'Danh sách phim yêu thích',
+          icon: <Heart className="w-5 h-5 text-red-500 fill-red-600/30" />,
+          movies: (favoriteMovies || []).filter(Boolean),
+          loading: isFavoritesLoading,
+        },
+      ];
+    }
+    // HOME View
+    return [
+      { title: 'Phim Nổi Bật', icon: <Sparkles className="w-5 h-5 text-yellow-500" />, movies: (featuredMovies || []).filter(Boolean), loading: isFeaturedLoading },
+      { title: 'Phim Thịnh Hành', icon: <TrendingUp className="w-5 h-5 text-red-500" />, movies: (trendingMovies || []).filter(Boolean), loading: isTrendingLoading },
+      { title: 'Phim Lẻ Mới', icon: <Film className="w-5 h-5 text-blue-500" />, movies: (singleMovies || []).filter(Boolean), loading: isSingleLoading },
+      { title: 'Phim Bộ Mới', icon: <Tv className="w-5 h-5 text-green-500" />, movies: (seriesMovies || []).filter(Boolean), loading: isSeriesLoading },
+      { title: 'Phim Sắp Ra Mắt', icon: <Calendar className="w-5 h-5 text-yellow-500 animate-pulse" />, movies: (upcomingMovies || []).filter(Boolean), loading: isUpcomingLoading },
+    ].filter(row => row.loading || row.movies.length > 0);
+  };
+
+  const rows = getTvRows(sidebarIdx);
   const rowLengths = rows.map(r => r.movies.length);
+
+  // 5. Spatial Navigation Hook Setup
   const {
     zone,
     setZone,
-    sidebarIdx,
-    setSidebarIdx,
     gridRow,
     setGridRow,
     gridCol,
@@ -67,12 +118,80 @@ export default function TvPage() {
     openModal,
     closeModal,
   } = useTvNavigation({
-    sidebarCount: 3, // Search, Home, Favorites
+    sidebarCount: isAuthenticated ? 4 : 3, // Search, Home, Favorites, Logout / Search, Home, Login
     rowCount: rows.length,
     rowLengths,
-    modalButtonsCount: 2, // Default buttons count, overridden dynamically for series
+    modalButtonsCount: 2,
     initialZone: 'hero',
+    isAuthenticated,
+    sidebarIdx,
+    setSidebarIdx,
   });
+
+  // TV QR Login states
+  const [tvSession, setTvSession] = useState<{ token: string; code: string; expiresAt: number } | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
+
+  const fetchTvSession = () => {
+    setIsSessionLoading(true);
+    authAPI.createTvSession()
+      .then((data) => {
+        setTvSession(data);
+      })
+      .catch((err) => {
+        console.error('Error creating TV session:', err);
+        toast.error('Không thể tạo phiên đăng nhập TV');
+      })
+      .finally(() => {
+        setIsSessionLoading(false);
+      });
+  };
+
+  // Generate TV session on entering Login tab
+  useEffect(() => {
+    if (sidebarIdx === 2 && !isAuthenticated) {
+      fetchTvSession();
+    }
+  }, [sidebarIdx, isAuthenticated]);
+
+  // Poll TV session status
+  useEffect(() => {
+    if (!tvSession || isAuthenticated || sidebarIdx !== 2) return;
+
+    const interval = setInterval(() => {
+      authAPI.getTvSessionStatus(tvSession.token)
+        .then((data) => {
+          if (data.expired) {
+            setTvSession(null);
+            fetchTvSession();
+            toast.error('Mã QR đã hết hạn. Đang tải mã mới...');
+          } else if (data.isApproved) {
+            // Log in the user
+            localStorage.setItem('access_token', data.accessToken);
+            localStorage.setItem('refresh_token', data.refreshToken);
+            
+            // Sync user state in zustand store
+            useAuthStore.setState({
+              isAuthenticated: true,
+              user: data.user,
+              accessToken: data.accessToken,
+              refreshToken: data.refreshToken,
+            });
+            
+            toast.success(`Chào mừng ${data.user.displayName || data.user.username} đã đăng nhập thành công!`);
+            setSidebarIdx(1); // Redirect to Home
+            setZone('hero');
+          }
+        })
+        .catch((err) => {
+          console.error('Error polling TV session status:', err);
+        });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [tvSession, isAuthenticated, sidebarIdx, setSidebarIdx, setZone]);
+
+  const heroMovie = featuredMovies[0] || trendingMovies[0] || singleMovies[0] || null;
 
   // Modal and playback states
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -81,13 +200,53 @@ export default function TvPage() {
   const [selectedEpisodeIdx, setSelectedEpisodeIdx] = useState(0);
   const [activePlayback, setActivePlayback] = useState<{ src: string; episodeId: string } | null>(null);
 
-  // Refs for auto-scrolling focused items
+  // Refs for D-pad auto-scrolling
   const activeItemRef = useRef<HTMLDivElement>(null);
   const activeRowRef = useRef<HTMLDivElement>(null);
   const activeSidebarItemRef = useRef<HTMLDivElement>(null);
   const activeHeroBtnRef = useRef<HTMLButtonElement>(null);
-  const activeModalBtnRef = useRef<HTMLButtonElement>(null);
   const activeEpisodeItemRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset focus coordinates when switching sidebar tabs
+  useEffect(() => {
+    setGridRow(0);
+    setGridCol(0);
+    if (sidebarIdx === 0) {
+      setZone('search-input');
+    } else if (sidebarIdx === 1) {
+      setZone('hero');
+    } else if (sidebarIdx === 2) {
+      if (isAuthenticated) {
+        setZone('grid');
+      } else {
+        setZone('login-qr');
+      }
+    } else if (sidebarIdx === 3) {
+      setZone('sidebar');
+    }
+  }, [sidebarIdx, setZone, setGridRow, setGridCol, isAuthenticated]);
+
+  // Handle Search Input focus native D-pad transitions
+  useEffect(() => {
+    if (zone === 'search-input' && inputRef.current) {
+      inputRef.current.focus();
+    } else if (inputRef.current) {
+      inputRef.current.blur();
+    }
+  }, [zone]);
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setZone('keyboard');
+      setGridRow(0);
+      setGridCol(0);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setZone('sidebar');
+    }
+  };
 
   // Fetch episodes when a movie is selected
   useEffect(() => {
@@ -111,16 +270,15 @@ export default function TvPage() {
   useEffect(() => {
     const handleOK = (e: KeyboardEvent) => {
       if (e.key !== 'Enter') return;
-      if (activePlayback) return; // Player is active, let TvHlsPlayer handle it
+      if (activePlayback) return; // Player handles OK internally
 
       if (zone === 'sidebar') {
         e.preventDefault();
-        if (sidebarIdx === 0) {
-          window.location.href = '/search';
-        } else if (sidebarIdx === 1) {
+        if (sidebarIdx === 3 && isAuthenticated) {
+          logout();
+          setSidebarIdx(1);
           setZone('hero');
-        } else if (sidebarIdx === 2) {
-          window.location.href = '/profile/favorites';
+          toast.success('Đã đăng xuất tài khoản.');
         }
       } else if (zone === 'hero') {
         e.preventDefault();
@@ -135,6 +293,23 @@ export default function TvPage() {
           setSelectedMovie(activeMovie);
           openModal();
         }
+      } else if (zone === 'keyboard') {
+        e.preventDefault();
+        const char = KEYBOARD_ROWS[gridRow]?.[gridCol];
+        if (char) {
+          if (char === 'SPACE') {
+            setSearchQuery((prev) => prev + ' ');
+          } else if (char === 'BACKSPACE') {
+            setSearchQuery((prev) => prev.slice(0, -1));
+          } else if (char === 'CLEAR') {
+            setSearchQuery('');
+          } else {
+            setSearchQuery((prev) => prev + char.toLowerCase());
+          }
+        }
+      } else if (zone === 'login-qr') {
+        e.preventDefault();
+        fetchTvSession();
       }
     };
 
@@ -142,9 +317,9 @@ export default function TvPage() {
     return () => {
       window.removeEventListener('keydown', handleOK);
     };
-  }, [zone, sidebarIdx, gridRow, gridCol, rows, heroMovie, openModal, activePlayback, setZone]);
+  }, [zone, gridRow, gridCol, rows, heroMovie, openModal, activePlayback, setSearchQuery, tvSession]);
 
-  // Modal Custom D-pad navigation logic (override for episode navigation)
+  // Modal Custom D-pad navigation logic
   useEffect(() => {
     if (zone !== 'modal' || !selectedMovie) return;
 
@@ -161,7 +336,6 @@ export default function TvPage() {
         }
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        // Play selected episode / trailer
         if (selectedMovie.status === 'UPCOMING') {
           if (selectedMovie.trailerUrl) {
             setActivePlayback({ src: selectedMovie.trailerUrl, episodeId: 'trailer' });
@@ -185,7 +359,7 @@ export default function TvPage() {
     };
   }, [zone, selectedMovie, episodes, selectedEpisodeIdx]);
 
-  // Auto-scroll logic when focus changes
+  // Auto-scroll when focus changes
   useEffect(() => {
     if (zone === 'grid' && activeItemRef.current) {
       activeItemRef.current.scrollIntoView({
@@ -199,7 +373,7 @@ export default function TvPage() {
         block: 'nearest',
         inline: 'nearest',
       });
-    } else if (zone === 'hero' && activeHeroBtnRef.current) {
+    } else if ((zone === 'hero' || zone === 'login-qr') && activeHeroBtnRef.current) {
       activeHeroBtnRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
@@ -238,18 +412,40 @@ export default function TvPage() {
             {[
               { id: 0, label: 'Tìm kiếm', icon: <Search className="w-5 h-5" /> },
               { id: 1, label: 'Trang chủ', icon: <Home className="w-5 h-5" /> },
-              { id: 2, label: 'Yêu thích', icon: <Heart className="w-5 h-5" /> },
+              ...(isAuthenticated
+                ? [
+                    { id: 2, label: 'Yêu thích', icon: <Heart className="w-5 h-5" /> },
+                    { id: 3, label: 'Đăng xuất', icon: <LogOut className="w-5 h-5 text-red-500" /> }
+                  ]
+                : [
+                    { id: 2, label: 'Đăng nhập', icon: <LogIn className="w-5 h-5 text-emerald-500" /> }
+                  ])
             ].map(item => {
+              const isActive = sidebarIdx === item.id;
               const isFocused = zone === 'sidebar' && sidebarIdx === item.id;
+              
+              let activeClass = 'text-gray-400 hover:text-white border border-transparent';
+              if (isFocused) {
+                activeClass = 'bg-red-600 text-white font-bold scale-105 shadow-lg shadow-red-600/20 border border-red-500/10';
+              } else if (isActive) {
+                activeClass = 'bg-red-600/10 text-red-500 font-bold border border-red-500/15';
+              }
+
               return (
                 <div
                   key={item.id}
                   ref={isFocused ? activeSidebarItemRef : null}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 cursor-pointer ${
-                    isFocused
-                      ? 'bg-red-600 text-white font-bold scale-105 shadow-lg shadow-red-600/20'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  onClick={() => {
+                    if (item.id === 3 && isAuthenticated) {
+                      logout();
+                      setSidebarIdx(1);
+                      setZone('hero');
+                      toast.success('Đã đăng xuất tài khoản.');
+                    } else {
+                      setSidebarIdx(item.id);
+                    }
+                  }}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 cursor-pointer ${activeClass}`}
                 >
                   {item.icon}
                   {zone === 'sidebar' && <span className="text-sm animate-fadeIn">{item.label}</span>}
@@ -269,9 +465,93 @@ export default function TvPage() {
 
       {/* 2. Main Content Scroll Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden relative pb-16">
-        {/* Banner section */}
-        {heroMovie && (
-          <div className="relative h-[65vh] w-full flex items-end select-none">
+        
+        {/* VIEW A: TV SEARCH VIEW */}
+        {sidebarIdx === 0 && (
+          <div className="p-12 space-y-8 select-none">
+            <h1 className="text-3xl font-extrabold flex items-center gap-3">
+              <Search className="w-8 h-8 text-red-500 animate-pulse" />
+              <span>Tìm Kiếm Phim Trên TV</span>
+            </h1>
+
+            {/* Glowing Search Box input */}
+            <div
+              className={`w-full max-w-2xl bg-zinc-900/60 border rounded-2xl flex items-center px-6 py-4 gap-4 transition-all ${
+                zone === 'search-input'
+                  ? 'border-red-500 shadow-xl shadow-red-600/5 bg-zinc-900 scale-102'
+                  : 'border-white/5'
+              }`}
+            >
+              <Search className="w-5 h-5 text-gray-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleInputKeyDown}
+                placeholder="Nhập tên phim bạn muốn tìm kiếm..."
+                className="bg-transparent border-none outline-none text-white w-full text-base font-medium placeholder-gray-500"
+              />
+            </div>
+            
+            {/* On-screen Virtual Keyboard */}
+            <div className="w-full max-w-2xl bg-zinc-900/30 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl select-none backdrop-blur-md">
+              <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Bàn phím ảo</div>
+              <div className="space-y-3">
+                {KEYBOARD_ROWS.map((row, rIdx) => (
+                  <div key={rIdx} className="flex gap-2">
+                    {row.map((char, cIdx) => {
+                      const isFocused = zone === 'keyboard' && gridRow === rIdx && gridCol === cIdx;
+                      let widthClass = 'flex-1';
+                      if (char === 'SPACE') widthClass = 'w-36 flex-grow-0';
+                      if (char === 'BACKSPACE') widthClass = 'w-24 flex-grow-0';
+                      if (char === 'CLEAR') widthClass = 'w-28 flex-grow-0';
+                      
+                      return (
+                        <button
+                          key={char}
+                          onClick={() => {
+                            if (char === 'SPACE') setSearchQuery((prev) => prev + ' ');
+                            else if (char === 'BACKSPACE') setSearchQuery((prev) => prev.slice(0, -1));
+                            else if (char === 'CLEAR') setSearchQuery('');
+                            else setSearchQuery((prev) => prev + char.toLowerCase());
+                            
+                            setZone('keyboard');
+                            setGridRow(rIdx);
+                            setGridCol(cIdx);
+                          }}
+                          className={`h-12 rounded-xl text-sm font-extrabold flex items-center justify-center transition-all ${widthClass} ${
+                            isFocused
+                              ? 'bg-red-600 text-white scale-105 shadow-lg shadow-red-600/30'
+                              : 'bg-zinc-800/80 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/5'
+                          }`}
+                        >
+                          {char === 'SPACE' ? 'DẤU CÁCH' : char === 'BACKSPACE' ? 'XÓA' : char === 'CLEAR' ? 'XÓA HẾT' : char}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Helper message for Search View */}
+            {zone === 'search-input' && (
+              <p className="text-xs text-gray-400">
+                Gõ bàn phím vật lý hoặc bấm **Mũi tên xuống** để dùng Bàn phím ảo. Bấm **Mũi tên trái** để về Sidebar.
+              </p>
+            )}
+            {zone === 'keyboard' && (
+              <p className="text-xs text-gray-400">
+                Sử dụng các phím di chuyển trên Remote/Bàn phím để chọn chữ, nhấn **Enter** để nhập. Di chuyển xuống dưới để tới danh sách phim.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* VIEW B: HOME VIEW (HERO BANNER) */}
+        {sidebarIdx === 1 && heroMovie && (
+          <div className="relative h-[60vh] w-full flex items-end select-none">
             {/* Background image & gradient overlay */}
             <div className="absolute inset-0 z-0">
               <img
@@ -315,10 +595,146 @@ export default function TvPage() {
           </div>
         )}
 
-        {/* Categories Rows */}
-        <div className="px-12 -mt-12 space-y-10 relative z-10 select-none">
+        {/* VIEW C: FAVORITES OR LOGIN VIEW */}
+        {sidebarIdx === 2 && (
+          isAuthenticated ? (
+            <div className="p-12 pb-4 select-none animate-fadeIn">
+              <h1 className="text-3xl font-extrabold flex items-center gap-3">
+                <Heart className="w-8 h-8 text-red-500 fill-red-600" />
+                <span>Phim Yêu Thích Của Bạn</span>
+              </h1>
+              <p className="text-xs text-gray-400 mt-2">
+                Danh sách phim bạn đã lưu để xem sau.
+              </p>
+            </div>
+          ) : (
+            <div className="p-12 space-y-8 select-none animate-fadeIn max-w-4xl">
+              <h1 className="text-3xl font-extrabold flex items-center gap-3">
+                <LogIn className="w-8 h-8 text-emerald-500 animate-pulse" />
+                <span>Đăng Nhập Tài Khoản Trên TV</span>
+              </h1>
+              <p className="text-xs text-gray-400 -mt-4">
+                Đăng nhập tài khoản HùngCinema để đồng bộ danh sách phim yêu thích và lịch sử xem của bạn.
+              </p>
+
+              <div className="bg-zinc-900/40 border border-white/5 p-8 rounded-3xl flex flex-col md:flex-row items-center gap-12 shadow-2xl backdrop-blur-md">
+                {/* Left side: QR Code */}
+                <div className="flex flex-col items-center gap-4">
+                  {isSessionLoading ? (
+                    <div className="w-[200px] h-[200px] bg-zinc-950 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner">
+                      <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+                    </div>
+                  ) : tvSession ? (
+                    (() => {
+                      const qrUrl = typeof window !== 'undefined'
+                        ? `${window.location.origin}/tv/login-mobile?token=${tvSession.token}&code=${tvSession.code}`
+                        : '';
+                      const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}&color=255-255-255&bgcolor=15-15-18`;
+                      return (
+                        <div className="relative p-3 bg-[#0f0f12] rounded-2xl border-2 border-red-500/20 shadow-lg shadow-red-600/5 hover:border-red-500/80 transition-all duration-300">
+                          <img
+                            src={qrImg}
+                            alt="QR Code Đăng Nhập TV"
+                            className="w-[200px] h-[200px] rounded-lg"
+                          />
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="w-[200px] h-[200px] bg-zinc-950 rounded-2xl flex flex-col items-center justify-center gap-2 border border-white/5 shadow-inner">
+                      <XCircle className="w-8 h-8 text-red-500" />
+                      <span className="text-[10px] text-gray-500">Lỗi tạo phiên QR</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: Instructions */}
+                <div className="flex-1 space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 bg-red-600/10 text-red-500 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                        1
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white">Quét mã QR</h4>
+                        <p className="text-xs text-gray-400 leading-normal">
+                          Mở ứng dụng Camera hoặc quét mã QR trên điện thoại di động để truy cập trang xác nhận liên kết.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 bg-red-600/10 text-red-500 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                        2
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white">Xác nhận mã liên kết</h4>
+                        <p className="text-xs text-gray-400 leading-normal">
+                          Đảm bảo mã 6 chữ số hiển thị trên điện thoại trùng khớp với mã bên dưới:
+                        </p>
+                        {tvSession && (
+                          <div className="inline-block bg-zinc-950 border border-white/5 px-4 py-2 mt-2 rounded-xl text-xl font-black text-red-500 tracking-wider shadow-inner">
+                            {tvSession.code}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 bg-red-600/10 text-red-500 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                        3
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white">Đồng ý liên kết</h4>
+                        <p className="text-xs text-gray-400 leading-normal">
+                          Nhấn "Đăng Nhập Trên TV" trên điện thoại để hoàn thành. TV của bạn sẽ tự động đăng nhập.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-3 items-center">
+                    <button
+                      ref={zone === 'login-qr' ? activeHeroBtnRef : null}
+                      onClick={fetchTvSession}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all text-xs ${
+                        zone === 'login-qr'
+                          ? 'bg-white text-black scale-105 shadow-xl shadow-white/10'
+                          : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                      }`}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isSessionLoading ? 'animate-spin' : ''}`} />
+                      <span>Lấy Mã QR Mới</span>
+                    </button>
+                    {zone === 'login-qr' && (
+                      <span className="text-[10px] text-gray-500 animate-pulse">
+                        Nhấn nút OK trên Remote để lấy mã mới
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* Dynamic Categories Movie Rows Rendering */}
+        <div className="px-12 space-y-10 relative z-10 select-none">
           {rows.map((row, rIdx) => {
             const isRowActive = zone === 'grid' && gridRow === rIdx;
+            
+            // Empty rows handling
+            if (!row.loading && row.movies.length === 0) {
+              if (sidebarIdx === 0 && !searchQuery.trim()) {
+                return null;
+              }
+              return (
+                <div key={row.title} className="text-sm text-gray-500 py-8 italic">
+                  Không tìm thấy phim nào trong danh mục này.
+                </div>
+              );
+            }
+
             return (
               <div key={row.title} ref={isRowActive ? activeRowRef : null} className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -338,7 +754,7 @@ export default function TvPage() {
                         ref={isFocused ? activeItemRef : null}
                         className={`flex-shrink-0 w-44 aspect-[2/3] rounded-2xl overflow-hidden relative border transition-all duration-300 ${
                           isFocused
-                            ? 'border-red-500 scale-108 shadow-xl shadow-red-600/10 z-20'
+                            ? 'border-red-500 scale-108 shadow-xl shadow-red-600/15 z-20'
                             : 'border-white/5 opacity-80'
                         }`}
                       >
@@ -365,7 +781,7 @@ export default function TvPage() {
 
       {/* 3. Netflix-style TV Detail Modal */}
       {isModalOpen && selectedMovie && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center p-8 select-none">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-40 flex items-center justify-center p-8 select-none">
           <div className="bg-[#0c0c0e] w-full max-w-4xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl flex flex-col md:flex-row h-[75vh]">
             {/* Left Image Info */}
             <div className="w-full md:w-1/3 relative h-1/3 md:h-full">

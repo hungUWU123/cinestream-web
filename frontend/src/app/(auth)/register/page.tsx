@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuthStore } from '@/store/auth.store';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Film, Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authAPI } from '@/lib/api';
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/';
   const { register, isLoading } = useAuthStore();
 
   const [email, setEmail] = useState('');
@@ -95,7 +97,7 @@ export default function RegisterPage() {
         password,
       });
       toast.success('Đăng ký tài khoản thành công!');
-      router.push('/');
+      window.location.href = redirectUrl;
     } catch (err: any) {
       const message = err.response?.data?.message || 'Đăng ký tài khoản thất bại. Vui lòng thử lại.';
       toast.error(message);
@@ -286,11 +288,19 @@ export default function RegisterPage() {
         {/* Footer */}
         <p className="text-center text-xs text-gray-400">
           Đã có tài khoản?{' '}
-          <Link href="/login" className="text-red-500 hover:text-red-400 font-bold transition-colors">
+          <Link href={`/login?redirect=${encodeURIComponent(redirectUrl)}`} className="text-red-500 hover:text-red-400 font-bold transition-colors">
             Đăng nhập ngay
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white">Đang tải...</div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }
