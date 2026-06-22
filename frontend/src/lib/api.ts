@@ -56,10 +56,14 @@ export default api;
 
 // Auth
 export const authAPI = {
-  register: (data: { email: string; username: string; password: string; displayName: string }) =>
+  register: (data: { email: string; code: string; username: string; password: string; displayName: string }) =>
     api.post('/auth/register', data).then(r => r.data),
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data).then(r => r.data),
+  sendOtp: (email: string) =>
+    api.post('/auth/otp/send', { email }).then(r => r.data),
+  verifyOtp: (email: string, code: string) =>
+    api.post('/auth/otp/verify', { email, code }).then(r => r.data),
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }).then(r => r.data),
   logout: (refreshToken: string) =>

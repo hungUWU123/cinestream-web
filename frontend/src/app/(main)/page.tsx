@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { moviesAPI } from '@/lib/api';
 import MovieHero from '@/components/movie/MovieHero';
 import MovieRow from '@/components/movie/MovieRow';
-import { Film, TrendingUp, Sparkles, RefreshCw, Tv, Clapperboard, Gamepad2 } from 'lucide-react';
+import { Film, TrendingUp, Sparkles, RefreshCw, Tv, Clapperboard, Gamepad2, Calendar } from 'lucide-react';
 import type { Movie } from '@/types';
 
 export default function HomePage() {
@@ -48,6 +48,13 @@ export default function HomePage() {
   });
   const animeMovies = animeMoviesResponse?.data || [];
 
+  // Query Phim Sắp Ra Mắt
+  const { data: upcomingMoviesResponse, isLoading: isUpcomingLoading } = useQuery<any>({
+    queryKey: ['movies', 'upcoming'],
+    queryFn: () => moviesAPI.getAll({ status: 'UPCOMING', limit: 12 }),
+  });
+  const upcomingMovies = upcomingMoviesResponse?.data || [];
+
   // Select the first featured movie for the hero banner, fallback to first trending, first single, or null
   const heroMovie = featuredMovies[0] || trendingMovies[0] || singleMovies[0] || seriesMovies[0] || null;
 
@@ -82,7 +89,7 @@ export default function HomePage() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Chưa có phim trong hệ thống</h1>
           <p className="text-gray-400 max-w-md mb-8">
-            Hệ thống xem phim CineStream đã khởi tạo thành công nhưng chưa được đồng bộ phim từ OPhim. Vui lòng truy cập trang quản trị để bắt đầu đồng bộ.
+            Hệ thống xem phim HùngCinema đã khởi tạo thành công nhưng chưa được đồng bộ phim từ OPhim. Vui lòng truy cập trang quản trị để bắt đầu đồng bộ.
           </p>
           <div className="flex gap-4">
             <a href="/admin" className="btn btn-primary px-6 py-3 rounded-xl font-bold">
@@ -162,6 +169,17 @@ export default function HomePage() {
             loading={isAnimeLoading}
             icon={<Gamepad2 className="w-5 h-5 text-pink-500" />}
             viewAllLink="/search?genre=hoat-hinh"
+          />
+        )}
+
+        {/* Phim Sắp Ra Mắt */}
+        {(isUpcomingLoading || upcomingMovies.length > 0) && (
+          <MovieRow
+            title="PHIM SẮP RA MẮT"
+            movies={upcomingMovies}
+            loading={isUpcomingLoading}
+            icon={<Calendar className="w-5 h-5 text-yellow-500 animate-pulse" />}
+            viewAllLink="/search?status=UPCOMING"
           />
         )}
       </div>

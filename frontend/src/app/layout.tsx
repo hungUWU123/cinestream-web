@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CineStream - Hệ Thống Xem Phim Chuyên Nghiệp",
+  title: "HùngCinema - Hệ Thống Xem Phim Chuyên Nghiệp",
   description: "Trải nghiệm xem phim Full HD/4K vietsub thuyết minh nhanh nhất, chất lượng tốt nhất.",
 };
 

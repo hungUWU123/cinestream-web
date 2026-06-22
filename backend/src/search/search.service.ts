@@ -15,6 +15,7 @@ export class SearchService {
     country?: string;
     year?: number;
     type?: string;
+    status?: string;
     page?: number;
     limit?: number;
   }) {
@@ -40,6 +41,7 @@ export class SearchService {
     }
     if (query.year) where.year = Number(query.year);
     if (query.type) where.type = query.type.toUpperCase();
+    if (query.status) where.status = query.status.toUpperCase();
 
     const [total, movies] = await Promise.all([
       this.prisma.movie.count({ where }),

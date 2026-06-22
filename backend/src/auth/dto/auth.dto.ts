@@ -5,6 +5,10 @@ export class RegisterDto {
   email: string;
 
   @IsString()
+  @MinLength(6)
+  code: string;
+
+  @IsString()
   @MinLength(3)
   @MaxLength(30)
   username: string;
@@ -46,4 +50,18 @@ export class ResetPasswordDto {
   @IsString()
   @MinLength(6)
   newPassword: string;
+}
+
+export class SendOtpDto {
+  @IsEmail()
+  email: string;
+}
+
+export class VerifyOtpDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  code: string;
 }

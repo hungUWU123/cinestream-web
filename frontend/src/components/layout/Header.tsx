@@ -136,7 +136,7 @@ export default function Header() {
               <Film className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black tracking-tight text-white">
-              Cine<span style={{ color: 'var(--accent-red)' }}>Stream</span>
+              Hùng<span style={{ color: 'var(--accent-red)' }}>Cinema</span>
             </span>
           </Link>
 
@@ -182,6 +182,7 @@ export default function Header() {
 
             <Link href="/search?type=MOVIE" className="nav-link">Phim Lẻ</Link>
             <Link href="/search?type=SERIES" className="nav-link">Phim Bộ</Link>
+            <Link href="/search?status=UPCOMING" className="nav-link">Sắp Ra Mắt</Link>
 
             {/* Countries */}
             <div className="relative">
@@ -391,6 +392,7 @@ export default function Header() {
               <Link href="/" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Trang Chủ</Link>
               <Link href="/search?type=MOVIE" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Phim Lẻ</Link>
               <Link href="/search?type=SERIES" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Phim Bộ</Link>
+              <Link href="/search?status=UPCOMING" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg" onClick={() => setIsMenuOpen(false)}>Sắp Ra Mắt</Link>
               <div className="grid grid-cols-2 gap-1 px-4 py-2 border-y border-white/5 my-2">
                 {genres.map((g) => (
                   <Link

@@ -46,7 +46,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 5000;
   await app.listen(port);
-  console.log(`🚀 CineStream Backend running on: http://localhost:${port}/api`);
+  console.log(`🚀 HùngCinema Backend running on: http://localhost:${port}/api`);
 }
 
 bootstrap();

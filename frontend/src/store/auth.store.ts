@@ -13,7 +13,8 @@ interface AuthState {
   isAuthenticated: boolean;
 
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; username: string; password: string; displayName: string }) => Promise<void>;
+  loginOtp: (email: string, code: string) => Promise<void>;
+  register: (data: { email: string; code: string; username: string; password: string; displayName: string }) => Promise<void>;
   logout: () => Promise<void>;
   setTokens: (tokens: AuthTokens) => void;
   setUser: (user: User) => void;
@@ -32,6 +33,25 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const data = await authAPI.login({ email, password });
+          localStorage.setItem('access_token', data.accessToken);
+          localStorage.setItem('refresh_token', data.refreshToken);
+          set({
+            user: data.user,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      loginOtp: async (email, code) => {
+        set({ isLoading: true });
+        try {
+          const data = await authAPI.verifyOtp(email, code);
           localStorage.setItem('access_token', data.accessToken);
           localStorage.setItem('refresh_token', data.refreshToken);
           set({
@@ -85,7 +105,7 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
     }),
     {
-      name: 'cinestream-auth',
+      name: 'hungcinema-auth',
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

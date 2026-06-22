@@ -8,30 +8,55 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto } from './dto/auth.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private otpCache = new Map<string, { code: string; expiresAt: number }>();
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private mailService: MailService,
   ) {}
 
   async register(dto: RegisterDto) {
-    // Check existing user
+    const email = dto.email.toLowerCase().trim();
+    const code = dto.code.trim();
+
+    // Check existing user first to avoid invalidating OTP on simple input errors
     const existing = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: dto.email }, { username: dto.username }],
+        OR: [{ email }, { username: dto.username }],
       },
     });
 
     if (existing) {
-      if (existing.email === dto.email) {
-        throw new ConflictException('Email already registered');
+      if (existing.email === email) {
+        throw new ConflictException('Email này đã được đăng ký sử dụng.');
       }
-      throw new ConflictException('Username already taken');
+      throw new ConflictException('Tên đăng nhập này đã được sử dụng.');
     }
+
+    // Verify OTP code
+    const cached = this.otpCache.get(email);
+    if (!cached) {
+      throw new UnauthorizedException('Mã xác minh email không tồn tại hoặc đã hết hạn.');
+    }
+
+    if (cached.expiresAt < Date.now()) {
+      this.otpCache.delete(email);
+      throw new UnauthorizedException('Mã xác minh email đã hết hạn.');
+    }
+
+    if (cached.code !== code) {
+      throw new UnauthorizedException('Mã xác minh email không chính xác.');
+    }
+
+    // OTP is verified, remove it from cache
+    this.otpCache.delete(email);
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
@@ -100,13 +125,13 @@ export class AuthService {
 
     if (!stored || stored.expiresAt < new Date()) {
       if (stored) {
-        await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+        await this.prisma.refreshToken.deleteMany({ where: { id: stored.id } });
       }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     // Rotate refresh token
-    await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+    await this.prisma.refreshToken.deleteMany({ where: { id: stored.id } });
 
     const tokens = await this.generateTokens(
       stored.user.id,
@@ -151,5 +176,90 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async sendOtp(dto: SendOtpDto) {
+    const email = dto.email.toLowerCase().trim();
+    // Generate a 6-digit numeric code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Expiration is 5 minutes from now
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    this.otpCache.set(email, { code, expiresAt });
+
+    // Send email
+    const success = await this.mailService.sendOtpMail(email, code);
+    if (!success) {
+      throw new BadRequestException('Không thể gửi mã xác minh về email của bạn. Vui lòng kiểm tra lại địa chỉ email.');
+    }
+
+    return { success: true, message: 'Mã xác minh đã được gửi về email của bạn. Vui lòng kiểm tra hộp thư.' };
+  }
+
+  async verifyOtp(dto: VerifyOtpDto) {
+    const email = dto.email.toLowerCase().trim();
+    const code = dto.code.trim();
+
+    const cached = this.otpCache.get(email);
+    if (!cached) {
+      throw new UnauthorizedException('Mã xác minh không tồn tại hoặc đã hết hạn.');
+    }
+
+    if (cached.expiresAt < Date.now()) {
+      this.otpCache.delete(email);
+      throw new UnauthorizedException('Mã xác minh đã hết hạn.');
+    }
+
+    if (cached.code !== code) {
+      throw new UnauthorizedException('Mã xác minh không chính xác.');
+    }
+
+    // OTP is verified and correct, remove it from cache
+    this.otpCache.delete(email);
+
+    // Check if user exists
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Auto-register the user
+      // Generate a unique username
+      const username = `user_${Math.random().toString(36).substring(2, 8)}`;
+      
+      // Part of email before @ as displayName
+      const displayName = email.split('@')[0];
+      
+      // Random password hash since they won't need it
+      const randomPassword = Math.random().toString(36).substring(2, 15);
+      const passwordHash = await bcrypt.hash(randomPassword, 12);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          username,
+          displayName,
+          passwordHash,
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Tài khoản của bạn đã bị khóa.');
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      ...tokens,
+    };
   }
 }

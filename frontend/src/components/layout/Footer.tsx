@@ -13,7 +13,7 @@ export default function Footer() {
                 <Film className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-black text-white">
-                Cine<span className="text-red-500">Stream</span>
+                Hùng<span className="text-red-500">Cinema</span>
               </span>
             </Link>
             <p className="text-sm text-gray-500 leading-relaxed">
@@ -21,7 +21,9 @@ export default function Footer() {
             </p>
             <div className="flex gap-3 mt-4">
               <a
-                href="#"
+                href="https://www.facebook.com/profile.php?id=61586870969364"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all"
                 aria-label="Facebook"
               >
@@ -112,10 +114,7 @@ export default function Footer() {
 
         <div className="mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-gray-600">
-            © 2024 CineStream. Tất cả quyền được bảo lưu.
-          </p>
-          <p className="text-xs text-gray-700">
-            Dữ liệu phim cung cấp bởi OPhim API. Chỉ dành cho mục đích học tập.
+            © 2026 HùngCinema. Tất cả quyền được bảo lưu.
           </p>
         </div>
       </div>

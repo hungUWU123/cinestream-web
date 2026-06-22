@@ -20,6 +20,7 @@ function SearchPageContent() {
   const country = searchParams.get('country') || '';
   const year = searchParams.get('year') || '';
   const type = searchParams.get('type') || '';
+  const status = searchParams.get('status') || '';
   const page = Number(searchParams.get('page') || '1');
 
   // Input states for form
@@ -48,7 +49,7 @@ function SearchPageContent() {
     pagination: { total: number; page: number; limit: number; totalPages: number };
     source: 'local' | 'ophim';
   }>({
-    queryKey: ['search', q, genre, country, year, type, page],
+    queryKey: ['search', q, genre, country, year, type, status, page],
     queryFn: () =>
       searchAPI.search({
         q,
@@ -56,6 +57,7 @@ function SearchPageContent() {
         country,
         year: year ? Number(year) : undefined,
         type: type || undefined,
+        status: status || undefined,
         page,
         limit: 24,
       }),
@@ -99,8 +101,14 @@ function SearchPageContent() {
         {/* Search header & input */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-white">Tìm Kiếm Phim</h1>
-            <p className="text-gray-400 text-sm mt-1">Tìm phim yêu thích theo tên, thể loại hoặc quốc gia</p>
+            <h1 className="text-3xl font-black text-white">
+              {status === 'UPCOMING' ? 'Phim Sắp Ra Mắt' : 'Tìm Kiếm Phim'}
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">
+              {status === 'UPCOMING'
+                ? 'Danh sách phim sắp ra mắt được cập nhật liên tục'
+                : 'Tìm phim yêu thích theo tên, thể loại hoặc quốc gia'}
+            </p>
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}

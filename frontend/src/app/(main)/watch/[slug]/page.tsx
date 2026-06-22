@@ -86,6 +86,21 @@ function WatchPageContent({
     );
   }
 
+  if (movie.status === 'UPCOMING') {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center container-main">
+        <AlertCircle className="w-16 h-16 text-yellow-500 mb-4 animate-pulse" />
+        <h1 className="text-2xl font-bold text-white mb-2 font-black">Phim chưa ra mắt</h1>
+        <p className="text-gray-400 mb-6 max-w-md">
+          Phim này hiện sắp ra mắt và chưa có tập phát sóng. Vui lòng xem trailer ở trang chi tiết phim.
+        </p>
+        <Link href={`/movies/${movie.slug}`} className="btn btn-primary px-6 py-3 rounded-xl font-bold">
+          Quay lại thông tin phim
+        </Link>
+      </div>
+    );
+  }
+
   // Group episodes by serverName
   const groupedEpisodes: Record<string, Episode[]> = {};
   episodes.forEach((ep) => {

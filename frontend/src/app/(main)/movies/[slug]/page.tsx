@@ -205,14 +205,34 @@ export default function MovieDetailPage({
               />
             </div>
 
-            {/* Watch button */}
-            <Link
-              href={watchLink}
-              className="btn btn-primary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 hover:scale-[1.02] transition-all"
-            >
-              <Play className="w-5 h-5 fill-white" />
-              Xem Phim
-            </Link>
+            {/* Watch / Trailer button */}
+            {movie.status === 'UPCOMING' ? (
+              movie.trailerUrl && getYoutubeEmbedUrl(movie.trailerUrl) ? (
+                <a
+                  href="#trailer"
+                  className="btn w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-yellow-600/20 hover:scale-[1.02] hover:bg-yellow-500 bg-yellow-500/80 text-black border-none transition-all"
+                >
+                  <Play className="w-5 h-5 fill-black animate-pulse" />
+                  Xem Trailer
+                </a>
+              ) : (
+                <button
+                  disabled
+                  className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-zinc-800 text-zinc-500 cursor-not-allowed border-none"
+                >
+                  <Play className="w-5 h-5 fill-zinc-500" />
+                  Sắp Ra Mắt (Chưa có Trailer)
+                </button>
+              )
+            ) : (
+              <Link
+                href={watchLink}
+                className="btn btn-primary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 hover:scale-[1.02] transition-all"
+              >
+                <Play className="w-5 h-5 fill-white" />
+                Xem Phim
+              </Link>
+            )}
 
             {/* Favorite toggle button */}
             <button
@@ -365,7 +385,7 @@ export default function MovieDetailPage({
 
             {/* Trailer embed if exists */}
             {movie.trailerUrl && getYoutubeEmbedUrl(movie.trailerUrl) && (
-              <div className="space-y-2">
+              <div id="trailer" className="space-y-2 scroll-mt-20">
                 <h3 className="text-lg font-bold text-white">Trailer</h3>
                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/5 bg-zinc-950">
                   <iframe
@@ -387,7 +407,15 @@ export default function MovieDetailPage({
             Danh Sách Tập Phim
           </h3>
 
-          {isEpisodesLoading ? (
+          {movie.status === 'UPCOMING' ? (
+            <div className="text-center py-10 bg-white/5 border border-white/5 rounded-2xl p-6">
+              <Calendar className="w-12 h-12 text-yellow-500 mx-auto mb-3 animate-bounce" />
+              <h4 className="text-white font-bold text-lg mb-1">Phim chưa ra mắt chính thức</h4>
+              <p className="text-gray-400 text-sm max-w-md mx-auto">
+                Phim này đang nằm trong danh sách phim sắp ra mắt. Tập phim sẽ được cập nhật tự động ngay sau khi phát hành.
+              </p>
+            </div>
+          ) : isEpisodesLoading ? (
             <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="skeleton h-10 rounded-lg" />

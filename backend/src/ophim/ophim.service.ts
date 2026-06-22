@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -79,6 +79,7 @@ export class OphimService {
   private readonly logger = new Logger(OphimService.name);
   private readonly baseUrl: string;
   private readonly imageCdn: string;
+  private isSyncing = false;
 
   constructor(
     private http: HttpService,
@@ -299,27 +300,69 @@ export class OphimService {
     return savedMovie.id;
   }
 
-  async syncLatestMovies(pages = 3): Promise<{ synced: number; errors: number }> {
-    let synced = 0;
-    let errors = 0;
-
-    for (let page = 1; page <= pages; page++) {
-      const list = await this.fetchMovieList(page);
-
-      for (const item of list.items) {
-        try {
-          await this.syncMovie(item.slug);
-          synced++;
-        } catch (error) {
-          this.logger.error(`Failed to sync ${item.slug}: ${error.message}`);
-          errors++;
-        }
-      }
-
-      // Small delay to avoid rate limiting
-      await new Promise((r) => setTimeout(r, 500));
+  async syncLatestMovies(pages = 3): Promise<{ success: boolean; message: string }> {
+    if (this.isSyncing) {
+      throw new BadRequestException(
+        'Hệ thống đang chạy đồng bộ phim ở nền, vui lòng không gửi yêu cầu trùng lặp.'
+      );
     }
 
-    return { synced, errors };
+    this.isSyncing = true;
+    this.logger.log(`Starting background sync for ${pages} pages`);
+
+    // Detach and run in background without await
+    this.runSyncLatest(pages).finally(() => {
+      this.isSyncing = false;
+      this.logger.log(`Finished background sync for ${pages} pages`);
+    });
+
+    return {
+      success: true,
+      message: 'Đã bắt đầu chạy đồng bộ phim ở nền. Bạn có thể tải lại trang sau ít phút để xem kết quả.',
+    };
+  }
+
+  private async runSyncLatest(pages: number) {
+    for (let page = 1; page <= pages; page++) {
+      try {
+        const list = await this.fetchMovieList(page);
+        let skipped = 0;
+        let synced = 0;
+
+        for (const item of list.items) {
+          try {
+            if (item.modified?.time) {
+              const existingMovie = await this.prisma.movie.findUnique({
+                where: { slug: item.slug },
+                select: { updatedAt: true },
+              });
+
+              if (existingMovie) {
+                const apiModifiedTime = new Date(item.modified.time);
+                // If our database movie has updatedAt >= apiModifiedTime, we skip it
+                if (existingMovie.updatedAt >= apiModifiedTime) {
+                  skipped++;
+                  continue;
+                }
+              }
+            }
+
+            await this.syncMovie(item.slug);
+            synced++;
+          } catch (error) {
+            this.logger.error(`Failed to sync ${item.slug}: ${error.message}`);
+          }
+        }
+
+        this.logger.log(
+          `Page ${page}/${pages} finished. Synced: ${synced}, Skipped: ${skipped}`,
+        );
+
+        // Small delay to avoid rate limiting
+        await new Promise((r) => setTimeout(r, 1000));
+      } catch (err) {
+        this.logger.error(`Failed to fetch movie list page ${page}: ${err.message}`);
+      }
+    }
   }
 }
