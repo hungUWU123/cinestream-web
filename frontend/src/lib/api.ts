@@ -3,7 +3,13 @@ import axios from 'axios';
 export function getApiUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
   if (typeof window !== 'undefined' && envUrl.includes('localhost') && window.location.hostname !== 'localhost') {
-    return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    const isDevPort = window.location.port === '3000';
+    if (isDevPort) {
+      return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    } else {
+      // Production mode behind reverse proxy (e.g. Nginx on port 80/443)
+      return `${window.location.protocol}//${window.location.hostname}/api`;
+    }
   }
   return envUrl;
 }
