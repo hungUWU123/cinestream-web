@@ -34,27 +34,34 @@ export class WatchHistoryService {
   async upsert(userId: string, movieId: string, episodeId: string | null, progress: number, duration: number) {
     const cleanProgress = Math.round(progress || 0);
     const cleanDuration = Math.round(duration || 0);
-    const cleanEpisodeId = episodeId || null;
+    const targetEpisodeId = episodeId || null;
 
-    return this.prisma.watchHistory.upsert({
+    const existing = await this.prisma.watchHistory.findFirst({
       where: {
-        userId_movieId_episodeId: {
-          userId,
-          movieId,
-          episodeId: cleanEpisodeId,
-        },
-      },
-      create: {
         userId,
         movieId,
-        episodeId: cleanEpisodeId,
-        progress: cleanProgress,
-        duration: cleanDuration,
+        episodeId: targetEpisodeId,
       },
-      update: {
+    });
+
+    if (existing) {
+      return this.prisma.watchHistory.update({
+        where: { id: existing.id },
+        data: {
+          progress: cleanProgress,
+          duration: cleanDuration,
+          watchedAt: new Date(),
+        },
+      });
+    }
+
+    return this.prisma.watchHistory.create({
+      data: {
+        userId,
+        movieId,
+        episodeId: targetEpisodeId,
         progress: cleanProgress,
         duration: cleanDuration,
-        watchedAt: new Date(),
       },
     });
   }
