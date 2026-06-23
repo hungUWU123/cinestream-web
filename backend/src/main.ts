@@ -47,6 +47,15 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
+  // Serve Downloads (APK files, etc.)
+  const downloadsDir = join(process.cwd(), 'downloads');
+  if (!fs.existsSync(downloadsDir)) {
+    fs.mkdirSync(downloadsDir, { recursive: true });
+  }
+  app.useStaticAssets(downloadsDir, {
+    prefix: '/downloads/',
+  });
+
   const port = process.env.PORT || 5000;
   await app.listen(port);
   console.log(`🚀 HùngCinema Backend running on: http://localhost:${port}/api`);

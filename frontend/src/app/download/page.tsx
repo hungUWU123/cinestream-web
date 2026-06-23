@@ -22,7 +22,10 @@ import {
   CastIcon,
 } from 'lucide-react';
 
-const APK_DOWNLOAD_URL = '#'; // Replace with actual APK link when ready
+const APK_DOWNLOAD_URL =
+  typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}${window.location.port && window.location.port !== '80' && window.location.port !== '443' ? ':5000' : ''}/downloads/hungcinema-tv.apk`
+    : '/downloads/hungcinema-tv.apk';
 
 export default function DownloadPage() {
   const [showPopup, setShowPopup] = useState(false);
