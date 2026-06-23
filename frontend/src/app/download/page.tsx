@@ -415,39 +415,23 @@ export default function DownloadPage() {
             </div>
 
             <h3 className="text-2xl font-black text-white text-center mb-1">Tải ứng dụng</h3>
-            <p className="text-gray-400 text-sm text-center mb-8">Chọn thiết bị tương ứng để tải và cài đặt</p>
+            <p className="text-gray-400 text-sm text-center mb-8">Nhấn tải về để cài đặt trên Smart TV Android</p>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Android TV */}
-              <a
-                href={APK_DOWNLOAD_URL}
-                download
-                className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-500/50 rounded-2xl p-6 transition-all hover:scale-105 cursor-pointer"
-              >
-                <div className="w-14 h-14 bg-red-600/20 group-hover:bg-red-600/30 rounded-2xl flex items-center justify-center transition-colors">
-                  <Tv2 className="w-8 h-8 text-red-400 group-hover:text-red-300" />
-                </div>
-                <div className="text-center">
-                  <div className="text-white font-bold text-sm">Android TV</div>
-                  <div className="text-gray-500 text-xs mt-0.5">Tải file APK</div>
-                </div>
-              </a>
-
-              {/* Mobile web */}
-              <Link
-                href="/tv"
-                className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-blue-600/20 border border-white/10 hover:border-blue-500/50 rounded-2xl p-6 transition-all hover:scale-105 cursor-pointer"
-                onClick={() => setShowPopup(false)}
-              >
-                <div className="w-14 h-14 bg-blue-600/20 group-hover:bg-blue-600/30 rounded-2xl flex items-center justify-center transition-colors">
-                  <Smartphone className="w-8 h-8 text-blue-400 group-hover:text-blue-300" />
-                </div>
-                <div className="text-center">
-                  <div className="text-white font-bold text-sm">Điện thoại</div>
-                  <div className="text-gray-500 text-xs mt-0.5">Mở trên web</div>
-                </div>
-              </Link>
-            </div>
+            {/* Android TV - full width */}
+            <a
+              href={APK_DOWNLOAD_URL}
+              download
+              className="group flex items-center gap-5 bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-500/50 rounded-2xl p-6 transition-all hover:scale-[1.02] cursor-pointer w-full"
+            >
+              <div className="w-16 h-16 bg-red-600/20 group-hover:bg-red-600/30 rounded-2xl flex items-center justify-center transition-colors flex-shrink-0">
+                <Tv2 className="w-9 h-9 text-red-400 group-hover:text-red-300" />
+              </div>
+              <div className="flex-1">
+                <div className="text-white font-black text-lg">Android TV</div>
+                <div className="text-gray-400 text-sm mt-0.5">Tải file APK về TV của bạn</div>
+              </div>
+              <Download className="w-6 h-6 text-red-400 group-hover:text-red-300 flex-shrink-0" />
+            </a>
 
             <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-400/80 leading-relaxed">
               <strong className="text-amber-400">Lưu ý khi cài APK trên TV:</strong> Bạn cần bật "Nguồn không xác định" trong phần Cài đặt → Bảo mật của TV trước khi cài đặt.

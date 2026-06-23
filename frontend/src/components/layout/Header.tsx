@@ -10,6 +10,7 @@ import { searchAPI } from '@/lib/api';
 import { getImageUrl, getAvatarUrl } from '@/types';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { DownloadButton } from '@/components/ui/DownloadAppButton';
 
 const genres = [
   // Cột 1
@@ -223,6 +224,9 @@ export default function Header() {
 
           {/* Right Section */}
           <div className="flex items-center gap-3">
+            {/* Download App TV */}
+            <DownloadButton className="hidden md:flex items-center gap-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 hover:border-red-500/60 text-red-400 hover:text-red-300 text-sm font-bold px-3 py-2 rounded-xl transition-all hover:scale-105" />
+
             {/* Search */}
             <div className="relative" ref={searchRef}>
               <AnimatePresence>
