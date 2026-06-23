@@ -102,7 +102,7 @@ export default function DownloadPage() {
                 Tải ứng dụng
               </button>
               <Link
-                href="/tv"
+                href="/"
                 className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold px-8 py-4 rounded-2xl transition-all hover:scale-105 text-lg"
               >
                 <Play className="w-6 h-6 text-red-400" />
