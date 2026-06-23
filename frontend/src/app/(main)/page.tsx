@@ -106,7 +106,7 @@ export default function HomePage() {
       )}
 
       {/* Movie Rows */}
-      <div className="container-main relative z-20 -mt-10 md:-mt-20 space-y-6">
+      <div className="container-main relative z-20 mt-4 md:-mt-20 space-y-6">
         {/* Featured Movies */}
         {(isFeaturedLoading || featuredMovies.length > 0) && (
           <MovieRow

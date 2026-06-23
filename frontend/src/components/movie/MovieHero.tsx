@@ -140,7 +140,7 @@ export default function MovieHero({ movies = [], movie }: MovieHeroProps) {
 
       {/* Slide Indicators (Dots) */}
       {slideMovies.length > 1 && (
-        <div className="absolute bottom-6 left-6 z-30 flex items-center gap-1.5 md:left-1/2 md:-translate-x-1/2">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
           {slideMovies.map((_, idx) => (
             <button
               key={idx}
@@ -156,7 +156,7 @@ export default function MovieHero({ movies = [], movie }: MovieHeroProps) {
 
       {/* Navigation Buttons (Left/Right Arrows) */}
       {slideMovies.length > 1 && (
-        <div className="absolute bottom-6 right-6 z-30 flex items-center gap-2">
+        <div className="hidden md:flex absolute bottom-6 right-6 z-30 items-center gap-2">
           <button
             onClick={() => setCurrentIndex((prev) => (prev - 1 + slideMovies.length) % slideMovies.length)}
             className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105"
