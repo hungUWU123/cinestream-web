@@ -227,12 +227,16 @@ export default function HlsPlayer({
     if (!container || !video) return;
 
     // Check if it's iOS (iPhone/iPad) which doesn't support requestFullscreen on div elements
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent) || 
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     if (isIOS && typeof (video as any).webkitEnterFullscreen === 'function') {
       try {
-        (video as any).webkitEnterFullscreen();
+        if ((video as any).webkitDisplayingFullscreen) {
+          (video as any).webkitExitFullscreen();
+        } else {
+          (video as any).webkitEnterFullscreen();
+        }
       } catch (err) {
         console.error('Error entering iOS fullscreen:', err);
       }
@@ -240,7 +244,7 @@ export default function HlsPlayer({
     }
 
     // Standard Fullscreen API for other devices
-    if (!document.fullscreenElement) {
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
       if (container.requestFullscreen) {
         container.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
       } else if ((container as any).webkitRequestFullscreen) {
@@ -249,6 +253,8 @@ export default function HlsPlayer({
       } else if ((container as any).msRequestFullscreen) {
         (container as any).msRequestFullscreen();
         setIsFullscreen(true);
+      } else if (typeof (video as any).webkitEnterFullscreen === 'function') {
+         (video as any).webkitEnterFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
@@ -312,12 +318,14 @@ export default function HlsPlayer({
       <video
         ref={videoRef}
         onClick={handlePlayPause}
+        onDoubleClick={toggleFullscreen}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         className="w-full h-full object-contain cursor-pointer"
         playsInline
+        webkit-playsinline="true"
       />
 
       {/* Custom Controls Overlay */}
