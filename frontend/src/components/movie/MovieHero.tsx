@@ -37,142 +37,280 @@ export default function MovieHero({ movies = [], movie }: MovieHeroProps) {
       : null;
 
   return (
-    <div className="relative w-full h-[85vh] md:h-[90vh] overflow-hidden bg-black">
-      {/* Background Poster Slides */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.65 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
-          className="absolute inset-0 w-full h-full"
-        >
-          <Image
-            src={getImageUrl(currentMovie.posterUrl || currentMovie.thumbUrl)}
-            alt={currentMovie.name}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover scale-[1.02] filter blur-[0.5px]"
-          />
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Gradients (Z-index 10) */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 z-10" />
-
-      {/* Hero Content (Z-index 20) */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.6 }}
-          className="absolute inset-x-0 bottom-0 z-20 container-main pb-20 md:pb-24"
-        >
-          <div className="max-w-2xl space-y-4 md:space-y-6">
-            {/* Badge & Meta */}
-            <div className="flex flex-wrap items-center gap-3">
-              {currentMovie.quality && (
-                <span className="badge badge-red font-semibold">{currentMovie.quality}</span>
-              )}
-              {currentMovie.lang && (
-                <span className="badge badge-glass font-semibold">{currentMovie.lang}</span>
-              )}
-              <div className="flex items-center gap-1.5 text-gray-300 text-sm font-medium">
-                <Calendar className="w-4 h-4" />
-                <span>{currentMovie.year}</span>
-              </div>
-              {currentMovie.time && (
-                <div className="flex items-center gap-1.5 text-gray-300 text-sm font-medium">
-                  <Clock className="w-4 h-4" />
-                  <span>{currentMovie.time}</span>
-                </div>
-              )}
-              {rating && (
-                <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-400 backdrop-blur-sm px-2 py-0.5 rounded text-sm font-bold border border-yellow-500/30">
-                  <Star className="w-4 h-4 fill-yellow-400" />
-                  <span>{rating}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Title */}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-tight drop-shadow-lg tracking-tight">
-              {currentMovie.name}
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-lg md:text-xl text-gray-400 font-medium tracking-wide">
-              {currentMovie.originName}
-            </p>
-
-            {/* Synopsis */}
-            {currentMovie.content && (
-              <p className="hidden md:block text-sm md:text-base text-gray-300 line-clamp-3 leading-relaxed drop-shadow max-w-xl">
-                {currentMovie.content}
-              </p>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link
-                href={`/watch/${currentMovie.slug}`}
-                className="btn btn-primary px-6 md:px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-xl shadow-red-600/25"
-              >
-                <Play className="w-5 h-5 fill-white" />
-                Xem Phim
-              </Link>
-              <Link
-                href={`/movies/${currentMovie.slug}`}
-                className="btn btn-ghost bg-white/10 hover:bg-white/20 backdrop-blur-md px-6 md:px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-all duration-300 border border-white/10 text-white"
-              >
-                <Info className="w-5 h-5" />
-                Thông Tin
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Slide Indicators (Dots) */}
-      {slideMovies.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
-          {slideMovies.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentIndex(idx)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                idx === currentIndex ? 'bg-red-600 w-6' : 'bg-white/30 hover:bg-white/60 w-1.5'
-              }`}
-              title={`Chuyển tới slide ${idx + 1}`}
+    <>
+      {/* Desktop view (md:block hidden) */}
+      <div className="hidden md:block relative w-full h-[90vh] overflow-hidden bg-black">
+        {/* Background Poster Slides */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.65 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0 w-full h-full"
+          >
+            <Image
+              src={getImageUrl(currentMovie.posterUrl || currentMovie.thumbUrl)}
+              alt={currentMovie.name}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover scale-[1.02] filter blur-[0.5px]"
             />
-          ))}
-        </div>
-      )}
+          </motion.div>
+        </AnimatePresence>
 
-      {/* Navigation Buttons (Left/Right Arrows) */}
-      {slideMovies.length > 1 && (
-        <div className="hidden md:flex absolute bottom-6 right-6 z-30 items-center gap-2">
-          <button
-            onClick={() => setCurrentIndex((prev) => (prev - 1 + slideMovies.length) % slideMovies.length)}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105"
-            title="Slide trước"
+        {/* Gradients (Z-index 10) */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 z-10" />
+
+        {/* Hero Content (Z-index 20) */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.6 }}
+            className="absolute inset-x-0 bottom-0 z-20 container-main pb-20 md:pb-24"
           >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setCurrentIndex((prev) => (prev + 1) % slideMovies.length)}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105"
-            title="Slide sau"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+            <div className="max-w-2xl space-y-4 md:space-y-6">
+              {/* Badge & Meta */}
+              <div className="flex flex-wrap items-center gap-3">
+                {currentMovie.quality && (
+                  <span className="badge badge-red font-semibold">{currentMovie.quality}</span>
+                )}
+                {currentMovie.lang && (
+                  <span className="badge badge-glass font-semibold">{currentMovie.lang}</span>
+                )}
+                <div className="flex items-center gap-1.5 text-gray-300 text-sm font-medium">
+                  <Calendar className="w-4 h-4" />
+                  <span>{currentMovie.year}</span>
+                </div>
+                {currentMovie.time && (
+                  <div className="flex items-center gap-1.5 text-gray-300 text-sm font-medium">
+                    <Clock className="w-4 h-4" />
+                    <span>{currentMovie.time}</span>
+                  </div>
+                )}
+                {rating && (
+                  <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-400 backdrop-blur-sm px-2 py-0.5 rounded text-sm font-bold border border-yellow-500/30">
+                    <Star className="w-4 h-4 fill-yellow-400" />
+                    <span>{rating}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-tight drop-shadow-lg tracking-tight">
+                {currentMovie.name}
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-lg md:text-xl text-gray-400 font-medium tracking-wide">
+                {currentMovie.originName}
+              </p>
+
+              {/* Synopsis */}
+              {currentMovie.content && (
+                <p className="hidden md:block text-sm md:text-base text-gray-300 line-clamp-3 leading-relaxed drop-shadow max-w-xl">
+                  {currentMovie.content}
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                <Link
+                  href={`/watch/${currentMovie.slug}`}
+                  className="btn btn-primary px-6 md:px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-xl shadow-red-600/25"
+                >
+                  <Play className="w-5 h-5 fill-white" />
+                  Xem Phim
+                </Link>
+                <Link
+                  href={`/movies/${currentMovie.slug}`}
+                  className="btn btn-ghost bg-white/10 hover:bg-white/20 backdrop-blur-md px-6 md:px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-all duration-300 border border-white/10 text-white"
+                >
+                  <Info className="w-5 h-5" />
+                  Thông Tin
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Slide Indicators (Dots) */}
+        {slideMovies.length > 1 && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
+            {slideMovies.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentIndex(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === currentIndex ? 'bg-red-600 w-6' : 'bg-white/30 hover:bg-white/60 w-1.5'
+                }`}
+                title={`Chuyển tới slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Navigation Buttons (Left/Right Arrows) */}
+        {slideMovies.length > 1 && (
+          <div className="hidden md:flex absolute bottom-6 right-6 z-30 items-center gap-2">
+            <button
+              onClick={() => setCurrentIndex((prev) => (prev - 1 + slideMovies.length) % slideMovies.length)}
+              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105"
+              title="Slide trước"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setCurrentIndex((prev) => (prev + 1) % slideMovies.length)}
+              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-all hover:scale-105"
+              title="Slide sau"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile view (block md:hidden) */}
+      <div className="block md:hidden w-full bg-[#0a0a0f] relative overflow-hidden">
+        {/* Backdrop Image Container with aspect ratio */}
+        <div className="relative w-full aspect-[16/10] overflow-hidden bg-black">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <Image
+                src={getImageUrl(currentMovie.posterUrl || currentMovie.thumbUrl)}
+                alt={currentMovie.name}
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover scale-[1.02]"
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Gradients to fade to black at the bottom & top */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0a0f] to-transparent z-10" />
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0a0a0f]/80 to-transparent z-10" />
         </div>
-      )}
-    </div>
+
+        {/* Movie Content Details */}
+        <div className="px-4 pb-4 space-y-4 -mt-2 relative z-20">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-3"
+            >
+              {/* Title */}
+              <h1 className="text-2xl font-bold text-white tracking-tight leading-tight">
+                {currentMovie.name}
+              </h1>
+
+              {/* Metadata row */}
+              <div className="flex flex-wrap items-center gap-2.5 text-xs text-gray-400 font-medium">
+                {currentMovie.quality && (
+                  <span className="bg-red-600/20 text-red-500 px-2 py-0.5 rounded font-semibold border border-red-500/20">
+                    {currentMovie.quality}
+                  </span>
+                )}
+                {currentMovie.lang && (
+                  <span className="bg-white/10 text-white px-2 py-0.5 rounded font-semibold border border-white/5">
+                    {currentMovie.lang}
+                  </span>
+                )}
+                {currentMovie.year && (
+                  <span>{currentMovie.year}</span>
+                )}
+                {currentMovie.time && (
+                  <>
+                    <span className="text-gray-700">•</span>
+                    <span>{currentMovie.time}</span>
+                  </>
+                )}
+                {rating && (
+                  <>
+                    <span className="text-gray-700">•</span>
+                    <span className="flex items-center gap-0.5 text-yellow-500 font-bold">
+                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                      {rating}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <Link
+                  href={`/watch/${currentMovie.slug}`}
+                  className="flex-1 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-full py-3 px-4 font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-600/20"
+                >
+                  <Play className="w-4 h-4 fill-white text-white" />
+                  Xem Phim
+                </Link>
+                <Link
+                  href={`/movies/${currentMovie.slug}`}
+                  className="flex-1 bg-white/10 hover:bg-white/15 border border-white/10 text-white rounded-full py-3 px-4 font-semibold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Chi Tiết
+                </Link>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Navigation & Indicators Carousel Row */}
+          {slideMovies.length > 1 && (
+            <div className="flex items-center justify-center gap-4 pt-3 border-t border-white/5">
+              {/* Left Arrow Button */}
+              <button
+                onClick={() => setCurrentIndex((prev) => (prev - 1 + slideMovies.length) % slideMovies.length)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white transition-all active:scale-90"
+                title="Slide trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Slide Dots */}
+              <div className="flex items-center gap-1.5">
+                {slideMovies.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      idx === currentIndex ? 'bg-red-600 w-5' : 'bg-white/20 hover:bg-white/40 w-1.5'
+                    }`}
+                    title={`Chuyển tới slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Right Arrow Button */}
+              <button
+                onClick={() => setCurrentIndex((prev) => (prev + 1) % slideMovies.length)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white transition-all active:scale-90"
+                title="Slide sau"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
