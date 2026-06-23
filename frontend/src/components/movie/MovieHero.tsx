@@ -71,7 +71,7 @@ export default function MovieHero({ movies = [], movie }: MovieHeroProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.6 }}
-          className="absolute inset-x-0 bottom-0 z-20 container-main pb-16 md:pb-24"
+          className="absolute inset-x-0 bottom-0 z-20 container-main pb-20 md:pb-24"
         >
           <div className="max-w-2xl space-y-4 md:space-y-6">
             {/* Badge & Meta */}
@@ -112,7 +112,7 @@ export default function MovieHero({ movies = [], movie }: MovieHeroProps) {
 
             {/* Synopsis */}
             {currentMovie.content && (
-              <p className="text-sm md:text-base text-gray-300 line-clamp-3 leading-relaxed drop-shadow max-w-xl">
+              <p className="hidden md:block text-sm md:text-base text-gray-300 line-clamp-3 leading-relaxed drop-shadow max-w-xl">
                 {currentMovie.content}
               </p>
             )}
