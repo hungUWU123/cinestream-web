@@ -383,7 +383,7 @@ export default function HlsPlayer({
                   step={0.05}
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-0 group-hover/volume:w-20 accent-red-600 h-1 rounded bg-white/20 transition-all cursor-pointer"
+                  className="hidden md:block w-0 group-hover/volume:w-20 accent-red-600 h-1 rounded bg-white/20 transition-all cursor-pointer"
                 />
               </div>
             </div>

@@ -56,12 +56,12 @@ export default function MovieRow({ title, movies, loading, viewAllLink, icon }: 
       <div ref={rowRef} className="movies-row">
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{ width: 180, flexShrink: 0 }}>
+              <div key={i} className="flex-shrink-0">
                 <MovieCardSkeleton />
               </div>
             ))
           : movies.map((movie, i) => (
-              <div key={movie.id} style={{ width: 180, flexShrink: 0 }}>
+              <div key={movie.id} className="flex-shrink-0">
                 <MovieCard movie={movie} index={i} />
               </div>
             ))}
