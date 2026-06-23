@@ -56,12 +56,18 @@ function WatchPageContent({
 
   const initialProgress = progressData?.progress || 0;
 
-  // 4. Fetch related movies
-  const { data: relatedMovies = [], isLoading: isRelatedLoading } = useQuery<Movie[]>({
+  // 4. Fetch related movies & sequels
+  const { data: relatedData, isLoading: isRelatedLoading } = useQuery<{
+    sequels: Movie[];
+    related: Movie[];
+  }>({
     queryKey: ['related-movies', movieId],
     queryFn: () => moviesAPI.getRelated(movieId!, 8),
     enabled: !!movieId,
   });
+
+  const sequels = relatedData?.sequels || [];
+  const relatedMovies = relatedData?.related || [];
 
   if (isMovieLoading) {
     return (
@@ -239,7 +245,10 @@ function WatchPageContent({
         </div>
 
         {/* Related movies */}
-        <div className="pt-12">
+        <div className="pt-12 space-y-12">
+          {sequels.length > 0 && (
+            <MovieRow title="Phim Cùng Bộ / Phần Tiếp Theo" movies={sequels} loading={isRelatedLoading} />
+          )}
           {relatedMovies.length > 0 && (
             <MovieRow title="Đề xuất liên quan" movies={relatedMovies} loading={isRelatedLoading} />
           )}

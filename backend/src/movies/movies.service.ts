@@ -143,13 +143,60 @@ export class MoviesService {
       include: { genres: { include: { genre: true } } },
     });
 
-    if (!movie) return [];
+    if (!movie) return { sequels: [], related: [] };
 
+    // 1. Extract keywords to find sequels/prequels/series collections
+    const keywords: string[] = [];
+    const cleanName = (str: string) => {
+      if (!str) return '';
+      let s = str.toLowerCase();
+      s = s.replace(/\(phần\s+\d+\)/g, '');
+      s = s.replace(/\(season\s+\d+\)/g, '');
+      s = s.replace(/phần\s+\d+/g, '');
+      s = s.replace(/season\s+\d+/g, '');
+      const parts = s.split(/[:\-\(]/);
+      let base = parts[0].trim();
+      base = base.replace(/\s+(part|vol|volume|phần|season)\s+\d+/g, '');
+      base = base.replace(/\s+\d+$/g, '');
+      return base.trim();
+    };
+
+    const k1 = cleanName(movie.name);
+    const k2 = cleanName(movie.originName);
+    if (k1 && k1.length >= 3) keywords.push(k1);
+    if (k2 && k2.length >= 3 && k2 !== k1) keywords.push(k2);
+
+    let sequels: any[] = [];
+    if (keywords.length > 0) {
+      const conditions = keywords.map((k) => ({
+        OR: [
+          { name: { contains: k } },
+          { originName: { contains: k } },
+        ],
+      }));
+
+      sequels = await this.prisma.movie.findMany({
+        where: {
+          id: { not: movieId },
+          isPublished: true,
+          OR: conditions,
+        },
+        take: 6,
+        orderBy: { year: 'asc' },
+        include: {
+          genres: { include: { genre: true } },
+          countries: { include: { country: true } },
+        },
+      });
+    }
+
+    // 2. Find other movies of the same genre
     const genreIds = movie.genres.map((g) => g.genreId);
+    const sequelIds = sequels.map((s) => s.id);
 
-    return this.prisma.movie.findMany({
+    const related = await this.prisma.movie.findMany({
       where: {
-        id: { not: movieId },
+        id: { notIn: [movieId, ...sequelIds] },
         isPublished: true,
         genres: { some: { genreId: { in: genreIds } } },
       },
@@ -160,6 +207,8 @@ export class MoviesService {
         countries: { include: { country: true } },
       },
     });
+
+    return { sequels, related };
   }
 
   async getGenres() {

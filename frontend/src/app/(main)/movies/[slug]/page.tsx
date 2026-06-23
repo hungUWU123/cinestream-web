@@ -62,12 +62,18 @@ export default function MovieDetailPage({
     enabled: !!movieId,
   });
 
-  // 3. Fetch related movies
-  const { data: relatedMovies = [], isLoading: isRelatedLoading } = useQuery<Movie[]>({
+  // 3. Fetch related movies & sequels
+  const { data: relatedData, isLoading: isRelatedLoading } = useQuery<{
+    sequels: Movie[];
+    related: Movie[];
+  }>({
     queryKey: ['related-movies', movieId],
     queryFn: () => moviesAPI.getRelated(movieId!, 8),
     enabled: !!movieId,
   });
+
+  const sequels = relatedData?.sequels || [];
+  const relatedMovies = relatedData?.related || [];
 
   // 4. Check if favorite
   const { data: favoriteData, isLoading: isFavChecking } = useQuery<{ favorited: boolean }>({
@@ -451,7 +457,10 @@ export default function MovieDetailPage({
         </div>
 
         {/* RELATED MOVIES ROW */}
-        <div className="mt-16">
+        <div className="mt-16 space-y-12">
+          {sequels.length > 0 && (
+            <MovieRow title="Phim Cùng Bộ / Phần Tiếp Theo" movies={sequels} loading={isRelatedLoading} />
+          )}
           {relatedMovies.length > 0 && (
             <MovieRow title="Có Thể Bạn Cũng Thích" movies={relatedMovies} loading={isRelatedLoading} />
           )}
