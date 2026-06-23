@@ -125,7 +125,11 @@ export default function Header() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'glass-dark border-b border-white/5' : 'bg-gradient-to-b from-black/80 to-transparent'
+        isMenuOpen
+          ? 'bg-[#0a0a0f] border-b border-white/5'
+          : isScrolled
+          ? 'glass-dark border-b border-white/5'
+          : 'bg-gradient-to-b from-black/80 to-transparent'
       }`}
     >
       <div className="container-main">
@@ -396,12 +400,36 @@ export default function Header() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-white/5 py-4 space-y-1"
+              className="md:hidden border-t border-white/5 py-4 space-y-1 max-h-[calc(100vh-64px)] overflow-y-auto bg-[#0a0a0f]"
             >
-              <Link href="/" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Trang Chủ</Link>
-              <Link href="/search?type=MOVIE" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Phim Lẻ</Link>
-              <Link href="/search?type=SERIES" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Phim Bộ</Link>
-              <Link href="/search?status=UPCOMING" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg" onClick={() => setIsMenuOpen(false)}>Sắp Ra Mắt</Link>
+              <Link
+                href="/"
+                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Trang Chủ
+              </Link>
+              <Link
+                href="/search?type=MOVIE"
+                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Phim Lẻ
+              </Link>
+              <Link
+                href="/search?type=SERIES"
+                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Phim Bộ
+              </Link>
+              <Link
+                href="/search?status=UPCOMING"
+                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Sắp Ra Mắt
+              </Link>
               <div className="grid grid-cols-2 gap-1 px-4 py-2 border-y border-white/5 my-2">
                 {genres.map((g) => (
                   <Link
@@ -416,8 +444,20 @@ export default function Header() {
               </div>
               {!isAuthenticated && (
                 <div className="flex gap-2 px-4 pt-2">
-                  <Link href="/login" className="btn btn-ghost text-sm flex-1 justify-center py-2">Đăng nhập</Link>
-                  <Link href="/register" className="btn btn-primary text-sm flex-1 justify-center py-2">Đăng ký</Link>
+                  <Link
+                    href="/login"
+                    className="btn btn-ghost text-sm flex-1 justify-center py-2"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="btn btn-primary text-sm flex-1 justify-center py-2"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Đăng ký
+                  </Link>
                 </div>
               )}
             </motion.div>
