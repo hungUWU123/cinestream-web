@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Menu, X, Bell, User, Heart, History, LogOut, Settings, Film, ChevronDown, Download } from 'lucide-react';
+import { Search, Menu, X, Bell, User, Heart, History, LogOut, Settings, Film, ChevronDown, Download, Home, List, Globe, Tv, Gamepad2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { searchAPI } from '@/lib/api';
 import { getImageUrl, getAvatarUrl } from '@/types';
@@ -68,6 +68,8 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showGenreMenu, setShowGenreMenu] = useState(false);
   const [showCountryMenu, setShowCountryMenu] = useState(false);
+  const [mobileGenreOpen, setMobileGenreOpen] = useState(false);
+  const [mobileCountryOpen, setMobileCountryOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
@@ -125,11 +127,7 @@ export default function Header() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isMenuOpen
-          ? 'bg-[#0a0a0f] border-b border-white/5'
-          : isScrolled
-          ? 'glass-dark border-b border-white/5'
-          : 'bg-gradient-to-b from-black/80 to-transparent'
+        isScrolled ? 'glass-dark border-b border-white/5' : 'bg-gradient-to-b from-black/80 to-transparent'
       }`}
     >
       <div className="container-main">
@@ -396,71 +394,223 @@ export default function Header() {
         {/* Mobile Menu */}
         <AnimatePresence>
           {isMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-white/5 py-4 space-y-1 max-h-[calc(100vh-64px)] overflow-y-auto bg-[#0a0a0f]"
-            >
-              <Link
-                href="/"
-                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[45] md:hidden"
                 onClick={() => setIsMenuOpen(false)}
+              />
+
+              {/* Sliding Drawer */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="fixed right-0 top-0 bottom-0 w-[75vw] max-w-[300px] bg-[#0d0d14] border-l border-white/5 z-50 md:hidden flex flex-col pt-20 pb-6 shadow-2xl overflow-y-auto"
               >
-                Trang Chủ
-              </Link>
-              <Link
-                href="/search?type=MOVIE"
-                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Phim Lẻ
-              </Link>
-              <Link
-                href="/search?type=SERIES"
-                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Phim Bộ
-              </Link>
-              <Link
-                href="/search?status=UPCOMING"
-                className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Sắp Ra Mắt
-              </Link>
-              <div className="grid grid-cols-2 gap-1 px-4 py-2 border-y border-white/5 my-2">
-                {genres.map((g) => (
+                <div className="flex flex-col gap-2.5 px-4">
+                  {isAuthenticated && user && (
+                    <div className="flex items-center gap-3 p-3 bg-[#1b1b26] rounded-xl border border-white/5 mb-2">
+                      {user.avatar ? (
+                        <img
+                          src={getAvatarUrl(user.avatar)}
+                          alt={user.displayName || user.username}
+                          className="w-9 h-9 rounded-full object-cover border border-white/10"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-bold">
+                          {user.displayName?.[0] || user.username[0]}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-white truncate">{user.displayName || user.username}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <Link
-                    key={g.slug}
-                    href={`/search?genre=${g.slug}`}
-                    className="block py-1.5 px-2 text-xs text-gray-400 hover:text-white hover:bg-white/5 rounded transition-colors"
+                    href="/"
+                    className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    {g.name}
+                    <Home className="w-4 h-4 text-gray-400" />
+                    <span>Trang Chủ</span>
                   </Link>
-                ))}
-              </div>
-              {!isAuthenticated && (
-                <div className="flex gap-2 px-4 pt-2">
+
+                  <div className="w-full">
+                    <button
+                      onClick={() => setMobileGenreOpen(!mobileGenreOpen)}
+                      className="flex items-center justify-between w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <List className="w-4 h-4 text-gray-400" />
+                        <span>Thể Loại</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                          mobileGenreOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {mobileGenreOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="grid grid-cols-2 gap-1.5 mt-2 px-1 overflow-hidden"
+                        >
+                          {genres.map((g) => (
+                            <Link
+                              key={g.slug}
+                              href={`/search?genre=${g.slug}`}
+                              className="bg-[#161622] hover:bg-[#1e1e2d] text-center text-xs text-gray-300 hover:text-white py-2 px-3 rounded-lg transition-colors border border-white/5"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              {g.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="w-full">
+                    <button
+                      onClick={() => setMobileCountryOpen(!mobileCountryOpen)}
+                      className="flex items-center justify-between w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Globe className="w-4 h-4 text-gray-400" />
+                        <span>Quốc Gia</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                          mobileCountryOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {mobileCountryOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="grid grid-cols-2 gap-1.5 mt-2 px-1 overflow-hidden"
+                        >
+                          {countries.map((c) => (
+                            <Link
+                              key={c.slug}
+                              href={`/search?country=${c.slug}`}
+                              className="bg-[#161622] hover:bg-[#1e1e2d] text-center text-xs text-gray-300 hover:text-white py-2 px-3 rounded-lg transition-colors border border-white/5"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              {c.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   <Link
-                    href="/login"
-                    className="btn btn-ghost text-sm flex-1 justify-center py-2"
+                    href="/search?type=SERIES"
+                    className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Đăng nhập
+                    <Tv className="w-4 h-4 text-gray-400" />
+                    <span>Phim Bộ</span>
                   </Link>
+
                   <Link
-                    href="/register"
-                    className="btn btn-primary text-sm flex-1 justify-center py-2"
+                    href="/search?type=MOVIE"
+                    className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Đăng ký
+                    <Film className="w-4 h-4 text-gray-400" />
+                    <span>Phim Lẻ</span>
                   </Link>
+
+                  <Link
+                    href="/search?genre=hoat-hinh"
+                    className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Gamepad2 className="w-4 h-4 text-gray-400" />
+                    <span>Hoạt Hình</span>
+                  </Link>
+
+                  <Link
+                    href="/profile/favorites"
+                    className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Heart className="w-4 h-4 text-gray-400" />
+                    <span>Yêu Thích</span>
+                  </Link>
+
+                  {isAuthenticated && (
+                    <Link
+                      href="/profile/history"
+                      className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <History className="w-4 h-4 text-gray-400" />
+                      <span>Lịch sử xem</span>
+                    </Link>
+                  )}
+
+                  {isAuthenticated && user?.role === 'ADMIN' && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-3 w-full bg-[#1b1b26] hover:bg-[#232333] text-white py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-white/5"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 text-gray-400" />
+                      <span>Quản Trị Viên</span>
+                    </Link>
+                  )}
+
+                  {!isAuthenticated ? (
+                    <div className="flex gap-2 pt-4 border-t border-white/5 mt-2">
+                      <Link
+                        href="/login"
+                        className="btn btn-ghost text-xs flex-1 justify-center py-2.5 rounded-xl font-bold"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Đăng nhập
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="btn btn-primary text-xs flex-1 justify-center py-2.5 rounded-xl font-bold"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Đăng ký
+                      </Link>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 w-full bg-red-500/10 hover:bg-red-500/15 text-red-400 py-3 px-4 rounded-xl text-sm font-semibold transition-colors border border-red-500/10 mt-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  )}
                 </div>
-              )}
-            </motion.div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>
