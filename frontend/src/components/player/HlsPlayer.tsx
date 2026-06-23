@@ -35,6 +35,7 @@ export default function HlsPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isHlsActive, setIsHlsActive] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Progress update ref to debounce API calls
   const lastSavedProgressRef = useRef<number>(0);
@@ -131,7 +132,7 @@ export default function HlsPlayer({
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || isDragging) return;
     setCurrentTime(video.currentTime);
     saveProgress(video.currentTime, video.duration);
   };
@@ -156,12 +157,17 @@ export default function HlsPlayer({
     }
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const seekTime = parseFloat(e.target.value);
+    setCurrentTime(seekTime);
+  };
+
+  const handleSeekCommit = (e: React.SyntheticEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video) return;
-    const seekTime = parseFloat(e.target.value);
+    const seekTime = parseFloat((e.target as HTMLInputElement).value);
     video.currentTime = seekTime;
-    setCurrentTime(seekTime);
+    setIsDragging(false);
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -351,7 +357,11 @@ export default function HlsPlayer({
               min={0}
               max={duration || 100}
               value={currentTime}
-              onChange={handleSeek}
+              onMouseDown={() => setIsDragging(true)}
+              onTouchStart={() => setIsDragging(true)}
+              onChange={handleSeekChange}
+              onMouseUp={handleSeekCommit}
+              onTouchEnd={handleSeekCommit}
               className="w-full accent-red-600 h-1 rounded-lg bg-white/20 cursor-pointer transition-all hover:h-1.5"
             />
             <span className="text-xs text-gray-300 font-medium select-none">{formatTime(duration)}</span>
