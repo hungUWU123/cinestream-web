@@ -185,14 +185,81 @@ export default function HlsPlayer({
     }
   };
 
+  // Sync fullscreen state from browser/OS events to avoid desync
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Sync iOS native fullscreen events
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleWebkitBegin = () => setIsFullscreen(true);
+    const handleWebkitEnd = () => setIsFullscreen(false);
+
+    video.addEventListener('webkitbeginfullscreen', handleWebkitBegin);
+    video.addEventListener('webkitendfullscreen', handleWebkitEnd);
+
+    return () => {
+      video.removeEventListener('webkitbeginfullscreen', handleWebkitBegin);
+      video.removeEventListener('webkitendfullscreen', handleWebkitEnd);
+    };
+  }, []);
+
   const toggleFullscreen = () => {
     const container = containerRef.current;
-    if (!container) return;
+    const video = videoRef.current;
+    if (!container || !video) return;
 
+    // Check if it's iOS (iPhone/iPad) which doesn't support requestFullscreen on div elements
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS && typeof (video as any).webkitEnterFullscreen === 'function') {
+      try {
+        (video as any).webkitEnterFullscreen();
+      } catch (err) {
+        console.error('Error entering iOS fullscreen:', err);
+      }
+      return;
+    }
+
+    // Standard Fullscreen API for other devices
     if (!document.fullscreenElement) {
-      container.requestFullscreen().then(() => setIsFullscreen(true));
+      if (container.requestFullscreen) {
+        container.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
+        setIsFullscreen(true);
+      } else if ((container as any).msRequestFullscreen) {
+        (container as any).msRequestFullscreen();
+        setIsFullscreen(true);
+      }
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false));
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+        setIsFullscreen(false);
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+        setIsFullscreen(false);
+      }
     }
   };
 
